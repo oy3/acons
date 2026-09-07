@@ -3,6 +3,10 @@ import Swal from "sweetalert2";
 import { useAuthStore } from "../../stores/auth.js";
 import { apiService } from "../../services/api.js";
 import { logger } from "@shared/utils/logger";
+import {
+  appendProgramAvailability,
+  sortProgramsByAvailability,
+} from "../../utils/programAvailability.js";
 import { toTitleCase } from "@shared/utils/string";
 
 const createDefaultFilters = () => ({
@@ -265,7 +269,7 @@ export default {
               sortBy: "name",
               sortOrder: "asc",
             }),
-            apiService.getPrograms({ page: 1, limit: 500, active: true }),
+            apiService.getPrograms({ page: 1, limit: 500 }),
             apiService.getAcademicSessions({
               page: 1,
               limit: 200,
@@ -279,7 +283,7 @@ export default {
           : [];
 
         this.programOptions = programsResponse.success
-          ? programsResponse.data || []
+          ? sortProgramsByAvailability(programsResponse.data || [])
           : [];
 
         this.academicSessions = academicSessionsResponse.success
@@ -889,11 +893,11 @@ export default {
         program?.programMode?.mode ||
         program?.programMode ||
         program?.programModeLabel;
-      return (
+      const baseLabel =
         [type, mode, program?.name].filter(Boolean).join(" ") ||
         program?.name ||
-        "N/A"
-      );
+        "N/A";
+      return appendProgramAvailability(baseLabel, program);
     },
 
     hasExportPermission() {

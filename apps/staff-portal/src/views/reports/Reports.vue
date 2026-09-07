@@ -4,6 +4,10 @@ import ReportChart from "../../components/reports/ReportChart.vue";
 import { apiService } from "../../services/api.js";
 import { useAuthStore } from "../../stores/auth.js";
 import { logger } from "@shared/utils/logger";
+import {
+  appendProgramAvailability,
+  sortProgramsByAvailability,
+} from "../../utils/programAvailability.js";
 
 const emptySchedule = () => ({
   name: "",
@@ -397,9 +401,19 @@ export default {
     }
   },
   methods: {
+    programTypeLabel(item) {
+      return `${item.type}${item.active === false ? " (Inactive)" : ""}`;
+    },
+    programModeLabel(item) {
+      return `${item.mode}${item.active === false ? " (Inactive)" : ""}`;
+    },
+    programLabel(program) {
+      return appendProgramAvailability(program.name, program);
+    },
     async loadOptions() {
       const response = await apiService.getReportFilterOptions();
       this.options = response.data || this.options;
+      this.options.programs = sortProgramsByAvailability(this.options.programs);
       const preferred =
         this.options.academicSessions.find((session) =>
           ["open", "ongoing"].includes(session.status),
@@ -761,7 +775,7 @@ export default {
               :key="item._id"
               :value="item._id"
             >
-              {{ item.type }}
+              {{ programTypeLabel(item) }}
             </option>
           </select>
         </div>
@@ -777,7 +791,7 @@ export default {
               :key="item._id"
               :value="item._id"
             >
-              {{ item.mode }}
+              {{ programModeLabel(item) }}
             </option>
           </select>
         </div>
@@ -793,7 +807,7 @@ export default {
               :key="program._id"
               :value="program._id"
             >
-              {{ program.name }}
+              {{ programLabel(program) }}
             </option>
           </select>
         </div>

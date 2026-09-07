@@ -3,6 +3,10 @@ import { useAuthStore } from "../../stores/auth.js";
 import { apiService } from "../../services/api.js";
 import { logger } from "@shared/utils/logger";
 import { Modal } from "bootstrap";
+import {
+  appendProgramAvailability,
+  sortProgramsByAvailability,
+} from "../../utils/programAvailability.js";
 
 const CBT_APP_URL = import.meta.env.VITE_APP_CBT_URL || "N/A";
 const SCHOOL_ADDRESS = import.meta.env.VITE_APP_SCHOOL_ADDRESS || "N/A";
@@ -276,12 +280,16 @@ export default {
       try {
         const response = await apiService.getPrograms({ limit: 100 });
         if (response.success && response.data) {
-          this.programs = response.data.map((p) => ({
-            label: [p.programType, p.programModeDescription, p.name]
-              .filter(Boolean)
-              .join(" "),
+          this.programs = sortProgramsByAvailability(response.data.map((p) => ({
+            ...p,
+            label: appendProgramAvailability(
+              [p.programType, p.programModeDescription, p.name]
+                .filter(Boolean)
+                .join(" "),
+              p,
+            ),
             value: p.id,
-          }));
+          })));
         }
       } catch (error) {
         logger.error("Failed to load programs:", error);

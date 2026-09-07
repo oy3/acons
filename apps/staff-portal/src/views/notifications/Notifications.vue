@@ -4,6 +4,10 @@ import { apiService } from "../../services/api.js";
 import { useAuthStore } from "../../stores/auth.js";
 import RichTextEditor from "../../components/RichTextEditor.vue";
 import { logger } from "@shared/utils/logger";
+import {
+  appendProgramAvailability,
+  sortProgramsByAvailability,
+} from "../../utils/programAvailability.js";
 
 const emptyForm = () => ({
   title: "",
@@ -161,6 +165,15 @@ export default {
     ]);
   },
   methods: {
+    programTypeLabel(type) {
+      return `${type.type}${type.active === false ? " (Inactive)" : ""}`;
+    },
+    programModeLabel(mode) {
+      return `${mode.mode}${mode.active === false ? " (Inactive)" : ""}`;
+    },
+    programLabel(program) {
+      return appendProgramAvailability(program.name, program);
+    },
     async loadNotifications() {
       try {
         this.isLoading = true;
@@ -191,6 +204,7 @@ export default {
       try {
         const response = await apiService.getStaffStudentFilterOptions();
         this.options = response.data || this.options;
+        this.options.programs = sortProgramsByAvailability(this.options.programs);
       } catch (error) {
         logger.error("Could not load audience options", error);
       }
@@ -983,7 +997,7 @@ export default {
                           :key="type._id"
                           :value="type._id"
                         >
-                          {{ type.type }}
+                          {{ programTypeLabel(type) }}
                         </option>
                       </select>
                     </div>
@@ -999,7 +1013,7 @@ export default {
                           :key="mode._id"
                           :value="mode._id"
                         >
-                          {{ mode.mode }}
+                          {{ programModeLabel(mode) }}
                         </option>
                       </select>
                     </div>
@@ -1015,7 +1029,7 @@ export default {
                           :key="program._id"
                           :value="program._id"
                         >
-                          {{ program.name }}
+                          {{ programLabel(program) }}
                         </option>
                       </select>
                     </div>

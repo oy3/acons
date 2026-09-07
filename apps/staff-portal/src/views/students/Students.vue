@@ -3,6 +3,11 @@ import Swal from "sweetalert2";
 import { useAuthStore } from "../../stores/auth.js";
 import { apiService } from "../../services/api.js";
 import { logger } from "@shared/utils/logger";
+import {
+  appendProgramAvailability,
+  sortOptionsByActive,
+  sortProgramsByAvailability,
+} from "../../utils/programAvailability.js";
 
 const defaultFilters = () => ({
   search: "",
@@ -68,7 +73,7 @@ export default {
         const type = program.programTypeId;
         if (type?._id) unique.set(type._id, type);
       });
-      return [...unique.values()].sort((a, b) => a.type.localeCompare(b.type));
+      return sortOptionsByActive([...unique.values()], "type");
     },
     programModes() {
       const unique = new Map();
@@ -76,7 +81,7 @@ export default {
         const mode = program.programModeId;
         if (mode?._id) unique.set(mode._id, mode);
       });
-      return [...unique.values()].sort((a, b) => a.mode.localeCompare(b.mode));
+      return sortOptionsByActive([...unique.values()], "mode");
     },
     hasFilters() {
       return Object.values(this.filters).some(Boolean);
@@ -118,10 +123,20 @@ export default {
     await this.authStore.initialize();
     const response = await apiService.getStaffStudentFilterOptions();
     this.options = response.data || this.options;
+    this.options.programs = sortProgramsByAvailability(this.options.programs);
     this.isInitializing = false;
     await Promise.all([this.loadStudents(), this.loadStats()]);
   },
   methods: {
+    programTypeLabel(type) {
+      return `${type.type}${type.active === false ? " (Inactive)" : ""}`;
+    },
+    programModeLabel(mode) {
+      return `${mode.mode}${mode.active === false ? " (Inactive)" : ""}`;
+    },
+    programLabel(program) {
+      return appendProgramAvailability(program.name, program);
+    },
     buildParams() {
       return { ...this.filters, page: this.currentPage, limit: this.perPage };
     },
@@ -297,7 +312,7 @@ export default {
                 :key="type._id"
                 :value="type._id"
               >
-                {{ type.type }}
+                {{ programTypeLabel(type) }}
               </option>
             </select>
           </div>
@@ -310,7 +325,7 @@ export default {
                 :key="mode._id"
                 :value="mode._id"
               >
-                {{ mode.mode }}
+                {{ programModeLabel(mode) }}
               </option>
             </select>
           </div>
@@ -333,7 +348,7 @@ export default {
                 :key="program._id"
                 :value="program._id"
               >
-                {{ program.name }}
+                {{ programLabel(program) }}
               </option>
             </select>
           </div>

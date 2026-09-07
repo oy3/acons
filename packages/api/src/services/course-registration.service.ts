@@ -20,6 +20,7 @@ import { Student, StudentDocument } from '../schemas/student.schema';
 import { StudentAcademicSession, StudentAcademicSessionDocument } from '../schemas/student-academic-session.schema';
 import { User, UserDocument } from '../schemas/user.schema';
 import { RolesService } from './roles.service';
+import { resolveProgramAvailability } from '../utils/program-availability.util';
 import {
     CourseRegistrationPermission,
     resolveCourseRegistrationAccess,
@@ -674,8 +675,8 @@ export class CourseRegistrationService {
     private async getOwnedPrograms(userId: string) {
         return this.programModel
             .find({ courseAdvisorId: new Types.ObjectId(userId) })
-            .populate('programTypeId', 'type description')
-            .populate('programModeId', 'mode description')
+            .populate('programTypeId', 'type description active')
+            .populate('programModeId', 'mode description active')
             .populate('departmentId', 'name')
             .sort({ name: 1 })
             .exec();
@@ -686,8 +687,8 @@ export class CourseRegistrationService {
 
         return this.programModel
             .find({})
-            .populate('programTypeId', 'type description')
-            .populate('programModeId', 'mode description')
+            .populate('programTypeId', 'type description active')
+            .populate('programModeId', 'mode description active')
             .populate('departmentId', 'name')
             .sort({ name: 1 })
             .exec();
@@ -831,6 +832,7 @@ export class CourseRegistrationService {
     }
 
     private formatAdvisorProgram(program: any) {
+        const availability = resolveProgramAvailability(program);
         return {
             id: this.extractId(program?._id),
             name: program?.name,
@@ -840,6 +842,8 @@ export class CourseRegistrationService {
             maxUnits: program?.maxUnits,
             maxResitCourses: program?.maxResitCourses,
             durationYears: program?.durationYears,
+            active: program?.active !== false,
+            ...availability,
             courseAdvisorId: this.extractId(program?.courseAdvisorId),
             department: program?.departmentId ? {
                 id: this.extractId(program.departmentId),
@@ -849,11 +853,13 @@ export class CourseRegistrationService {
                 id: this.extractId(program.programTypeId),
                 type: program.programTypeId.type,
                 description: program.programTypeId.description,
+                active: program.programTypeId.active !== false,
             } : null,
             programMode: program?.programModeId ? {
                 id: this.extractId(program.programModeId),
                 mode: program.programModeId.mode,
                 description: program.programModeId.description,
+                active: program.programModeId.active !== false,
             } : null,
         };
     }

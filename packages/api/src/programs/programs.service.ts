@@ -16,6 +16,7 @@ import {
     CreateProgramModeDto,
     UpdateProgramModeDto
 } from '../dto/program.dto';
+import { resolveProgramAvailability } from '../utils/program-availability.util';
 
 @Injectable()
 export class ProgramsService {
@@ -231,8 +232,8 @@ export class ProgramsService {
                 .find(filter)
                 .populate('departmentId', 'name code')
                 .populate('courseAdvisorId', 'firstName otherName lastName email role isActive')
-                .populate('programTypeId', 'type description')
-                .populate('programModeId', 'mode description')
+                .populate('programTypeId', 'type description active')
+                .populate('programModeId', 'mode description active')
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
@@ -288,8 +289,8 @@ export class ProgramsService {
                 .find(filter)
                 .populate('departmentId', 'name code')
                 .populate('courseAdvisorId', 'firstName otherName lastName email role isActive')
-                .populate('programTypeId', 'type description')
-                .populate('programModeId', 'mode description')
+                .populate('programTypeId', 'type description active')
+                .populate('programModeId', 'mode description active')
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
@@ -322,8 +323,8 @@ export class ProgramsService {
                 .findById(id)
                 .populate('departmentId', 'name code')
                 .populate('courseAdvisorId', 'firstName otherName lastName email role isActive')
-                .populate('programTypeId', 'type description')
-                .populate('programModeId', 'mode description')
+                .populate('programTypeId', 'type description active')
+                .populate('programModeId', 'mode description active')
                 .exec();
 
             if (!program) {
@@ -415,8 +416,8 @@ export class ProgramsService {
                 .findByIdAndUpdate(id, updateData, { new: true })
                 .populate('departmentId', 'name code')
                 .populate('courseAdvisorId', 'firstName otherName lastName email role isActive')
-                .populate('programTypeId', 'type description')
-                .populate('programModeId', 'mode description')
+                .populate('programTypeId', 'type description active')
+                .populate('programModeId', 'mode description active')
                 .exec();
 
             if (!program) {
@@ -838,6 +839,7 @@ export class ProgramsService {
     }
 
     private formatProgramResponse(program: any) {
+        const availability = resolveProgramAvailability(program);
         return {
             id: program._id.toString(),
             departmentId: this.extractReferenceId(program.departmentId),
@@ -866,6 +868,7 @@ export class ProgramsService {
             programModeDescription: program.programModeId?.description || null,
             durationYears: program.durationYears,
             active: program.active,
+            ...availability,
             createdAt: program.createdAt,
             updatedAt: program.updatedAt
         };

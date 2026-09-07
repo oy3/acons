@@ -4,6 +4,10 @@ import { useAuthStore } from "../../stores/auth.js";
 import { apiService } from "../../services/api.js";
 import { logger } from "@shared/utils/logger";
 import { toTitleCase } from "@shared/utils/string";
+import {
+  appendProgramAvailability,
+  sortProgramsByAvailability,
+} from "../../utils/programAvailability.js";
 
 const createDefaultFilters = () => ({
   search: "",
@@ -247,7 +251,7 @@ export default {
           );
         }
 
-        this.programs = response.data || [];
+        this.programs = sortProgramsByAvailability(response.data || []);
         this.selectedProgramId = this.programs[0]?.id || "";
 
         if (!this.selectedProgramId) {
@@ -288,7 +292,9 @@ export default {
           );
         }
 
-        this.programs = response.data?.programs || this.programs;
+        this.programs = sortProgramsByAvailability(
+          response.data?.programs || this.programs,
+        );
         this.stats = response.data?.stats || createEmptyStats();
         this.registrations = response.data?.registrations || [];
         this.totalItems = response.data?.pagination?.totalItems || 0;
@@ -328,7 +334,10 @@ export default {
         program.programMode?.mode,
       );
       const programName = program.name || "";
-      return [programType, programMode, programName].filter(Boolean).join(" ");
+      return appendProgramAvailability(
+        [programType, programMode, programName].filter(Boolean).join(" "),
+        program,
+      );
     },
     formatProgramModeLabel(mode) {
       if (!mode) {
