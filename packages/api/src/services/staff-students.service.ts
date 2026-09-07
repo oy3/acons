@@ -122,8 +122,8 @@ export class StaffStudentsService {
     async getFilterOptions() {
         const programs = await this.programModel
             .find({})
-            .populate('programTypeId', 'type')
-            .populate('programModeId', 'mode')
+            .populate('programTypeId', 'type active')
+            .populate('programModeId', 'mode active')
             .sort({ name: 1 })
             .lean();
         return {

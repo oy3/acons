@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { Course, CourseDocument } from '../schemas/course.schema';
 import { ProgramCourse, ProgramCourseCategory, ProgramCourseDocument } from '../schemas/program-course.schema';
 import { Program, ProgramDocument } from '../schemas/program.schema';
+import { resolveProgramAvailability } from '../utils/program-availability.util';
 import { User, UserDocument, UserRole } from '../schemas/user.schema';
 import { Staff, StaffDocument } from '../schemas/staff.schema';
 import {
@@ -353,9 +354,25 @@ export class CoursesService {
 
         if (input.programId) {
             this.ensureValidObjectId(input.programId, 'Invalid program ID');
-            const program = await this.programModel.findById(input.programId).exec();
+            const program = await this.programModel
+                .findById(input.programId)
+                .populate('programTypeId', 'active')
+                .populate('programModeId', 'active')
+                .exec();
             if (!program) {
                 throw new BadRequestException('Program not found');
+            }
+
+            const existingProgramCourse = programCourseId
+                ? await this.programCourseModel.findById(programCourseId).select('programId').lean()
+                : null;
+            const keepsExistingProgram =
+                existingProgramCourse &&
+                String(existingProgramCourse.programId) === String(program._id);
+            if (!resolveProgramAvailability(program).selectable && !keepsExistingProgram) {
+                throw new BadRequestException(
+                    'Inactive program variants, types, or modes cannot receive new course assignments',
+                );
             }
         }
 

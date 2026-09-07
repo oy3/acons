@@ -2,6 +2,7 @@
 import { apiService } from '../../../services/api.js'
 import { logger } from '@shared/utils/logger'
 import Swal from 'sweetalert2'
+import { appendProgramAvailability, sortProgramsByAvailability } from '../../../utils/programAvailability.js'
 
 export default {
   name: 'ExamFormModal',
@@ -151,6 +152,12 @@ export default {
     }
   },
   methods: {
+    programOptionLabel(program) {
+      const baseLabel = [program.programType, program.name, program.programMode]
+        .filter(Boolean)
+        .join(' ')
+      return appendProgramAvailability(baseLabel, program)
+    },
     async loadFormData() {
       this.loadingData = true
       try {
@@ -166,7 +173,7 @@ export default {
         }
 
         if (programsRes.success) {
-          this.programs = programsRes.data || []
+          this.programs = sortProgramsByAvailability(programsRes.data || [])
         }
 
         if (departmentsRes.success) {
@@ -521,9 +528,9 @@ export default {
                 <div v-if="showProgramFilter" class="mb-3">
                   <label class="form-label">Programs</label>
                   <select v-model="form.target.filter.programs" class="form-select" multiple size="4">
-                    <option v-for="program in programs.slice().sort((a, b) => a.name.localeCompare(b.name))"
+                    <option v-for="program in programs"
                       :key="program.id" :value="program.id">
-                      {{ (program.programType || '') + ' ' + program.name + ' ' + (program.programMode || '') }}
+                      {{ programOptionLabel(program) }}
                     </option>
                   </select>
                   <div class="form-text">

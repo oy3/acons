@@ -1,6 +1,10 @@
 <script>
 import { apiService } from "../../../services/api.js";
 import { logger } from "@shared/utils/logger";
+import {
+  getProgramInactiveReasons,
+  isProgramSelectable,
+} from "../../../utils/programAvailability.js";
 
 export default {
   name: "Programs",
@@ -59,10 +63,12 @@ export default {
           maxResitCourses: program.maxResitCourses,
           courseAdvisorId: program.courseAdvisorId,
           courseAdvisor: program.courseAdvisor,
-          active: program.active
+          active: program.active,
+          selectable: isProgramSelectable(program),
+          inactiveReasons: getProgramInactiveReasons(program),
         });
         
-        if (program.active) {
+        if (isProgramSelectable(program)) {
           groups[key].hasActiveVariants = true;
         }
       });
@@ -1439,12 +1445,12 @@ export default {
                           v-for="variant in programGroup.variants" 
                           :key="variant.id"
                           class="badge text-white small d-inline-flex align-items-center gap-1"
-                          :class="variant.active ? 'bg-info' : 'bg-secondary'"
-                          :title="`${variant.programType || 'Unknown type'} ${variant.programMode || 'Unknown mode'} - ${variant.durationYears || 'N/A'} year(s) - ${variant.active ? 'Active' : 'Inactive'}`"
+                          :class="variant.selectable ? 'bg-info' : 'bg-secondary'"
+                          :title="`${variant.programType || 'Unknown type'} ${variant.programMode || 'Unknown mode'} - ${variant.durationYears || 'N/A'} year(s) - ${variant.selectable ? 'Available' : variant.inactiveReasons.join(', ')}`"
                         >
                           <span>{{ variant.programType || 'Type N/A' }}</span>
                           <span>{{ variant.programMode || 'Mode N/A' }}</span>
-                          <small v-if="!variant.active" class="opacity-75">(Inactive)</small>
+                          <small v-if="!variant.selectable" class="opacity-75">(Unavailable)</small>
                         </span>
                       </div>
                     </td>

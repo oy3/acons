@@ -1,6 +1,7 @@
 <script>
 import { apiService } from '../../../services/api.js'
 import { logger } from '@shared/utils/logger'
+import { appendProgramAvailability, isProgramSelectable, sortProgramsByAvailability } from '../../../utils/programAvailability.js'
 
 const createDefaultAssessmentComponents = () => Array.from({ length: 4 }, (_, index) => ({
   title: `Assessment ${index + 1}`,
@@ -94,6 +95,12 @@ export default {
     },
     selectedProgramVariant() {
       return this.programs.find((program) => program.id === this.programCourseForm.programId) || null
+    },
+    assignablePrograms() {
+      const currentProgramId = this.programCourseForm.programId
+      return this.programs.filter(
+        (program) => isProgramSelectable(program) || program.id === currentProgramId
+      )
     },
     assignmentLevelOptions() {
       const durationYears = Number(this.selectedProgramVariant?.durationYears || 0)
@@ -291,9 +298,9 @@ export default {
 
     async loadPrograms() {
       try {
-        const response = await apiService.getPrograms({ page: 1, limit: 500, active: true })
+        const response = await apiService.getPrograms({ page: 1, limit: 500 })
         if (response.success) {
-          this.programs = response.data || []
+          this.programs = sortProgramsByAvailability(response.data || [])
         }
       } catch (error) {
         logger.error('Failed to load programs for course forms:', error)
@@ -315,7 +322,10 @@ export default {
 
     getProgramLabel(program) {
       if (!program) return 'N/A'
-      return `${program.name} · ${program.programType || 'Type N/A'} · ${program.programMode || 'Mode N/A'}`
+      return appendProgramAvailability(
+        `${program.name} · ${program.programType || 'Type N/A'} · ${program.programMode || 'Mode N/A'}`,
+        program
+      )
     },
 
     getProgramMappingLabel(programCourse) {
@@ -816,7 +826,7 @@ export default {
                 <label class="form-label">Program Variant</label>
                 <select v-model="programCourseForm.programId" class="form-select">
                   <option value="" disabled>Select program</option>
-                  <option v-for="program in programs" :key="program.id" :value="program.id">
+                  <option v-for="program in assignablePrograms" :key="program.id" :value="program.id">
                     {{ getProgramLabel(program) }}
                   </option>
                 </select>

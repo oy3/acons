@@ -72,7 +72,7 @@ export class ReportsService {
     }
     const [academicSessions, programs, programTypes, programModes, departments] = await Promise.all([
       this.sessionModel.find({}).sort({ startDate: -1 }).select('title sessionYear status startDate endDate').lean(),
-      this.programModel.find(programQuery).populate('programTypeId', 'type').populate('programModeId', 'mode').populate('departmentId', 'name code').sort({ name: 1 }).lean(),
+      this.programModel.find(programQuery).populate('programTypeId', 'type active').populate('programModeId', 'mode active').populate('departmentId', 'name code').sort({ name: 1 }).lean(),
       this.programTypeModel.find({}).sort({ type: 1 }).lean(),
       this.programModeModel.find({}).sort({ mode: 1 }).lean(),
       this.departmentModel.find({}).sort({ name: 1 }).lean(),

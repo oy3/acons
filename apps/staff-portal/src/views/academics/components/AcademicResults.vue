@@ -1,5 +1,10 @@
 <script>
 import { apiService } from "../../../services/api.js";
+import {
+  appendProgramAvailability,
+  sortOptionsByActive,
+  sortProgramsByAvailability,
+} from "../../../utils/programAvailability.js";
 
 const emptyFilters = () => ({
   programTypeId: "",
@@ -33,7 +38,7 @@ export default {
         if (program.programTypeId?._id)
           values.set(program.programTypeId._id, program.programTypeId);
       });
-      return [...values.values()].sort((a, b) => a.type.localeCompare(b.type));
+      return sortOptionsByActive([...values.values()], "type");
     },
     programModes() {
       const values = new Map();
@@ -41,7 +46,7 @@ export default {
         if (program.programModeId?._id)
           values.set(program.programModeId._id, program.programModeId);
       });
-      return [...values.values()].sort((a, b) => a.mode.localeCompare(b.mode));
+      return sortOptionsByActive([...values.values()], "mode");
     },
     filteredPrograms() {
       return this.options.programs.filter(
@@ -136,6 +141,7 @@ export default {
     try {
       const response = await apiService.getStaffStudentFilterOptions();
       this.options = response.data || this.options;
+      this.options.programs = sortProgramsByAvailability(this.options.programs);
     } catch (error) {
       this.$swal.fire(
         "Could not load result filters",
@@ -159,6 +165,15 @@ export default {
     next(Boolean(result.isConfirmed));
   },
   methods: {
+    programTypeLabel(type) {
+      return `${type.type}${type.active === false ? " (Inactive)" : ""}`;
+    },
+    programModeLabel(mode) {
+      return `${mode.mode}${mode.active === false ? " (Inactive)" : ""}`;
+    },
+    programLabel(program) {
+      return appendProgramAvailability(program.name, program);
+    },
     preventUnload(event) {
       if (!this.dirty) return;
       event.preventDefault();
@@ -404,7 +419,7 @@ export default {
             :key="type._id"
             :value="type._id"
           >
-            {{ type.type }}
+            {{ programTypeLabel(type) }}
           </option>
         </select>
       </div>
@@ -417,7 +432,7 @@ export default {
             :key="mode._id"
             :value="mode._id"
           >
-            {{ mode.mode }}
+            {{ programModeLabel(mode) }}
           </option>
         </select>
       </div>
@@ -434,7 +449,7 @@ export default {
             :key="program._id"
             :value="program._id"
           >
-            {{ program.name }}
+            {{ programLabel(program) }}
           </option>
         </select>
       </div>
