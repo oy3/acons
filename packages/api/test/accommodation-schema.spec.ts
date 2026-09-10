@@ -3,6 +3,8 @@ import { test } from 'node:test';
 import { AccommodationAssignmentSchema } from '../src/schemas/accommodation-assignment.schema';
 import { AccommodationApplicationStatus } from '../src/schemas/accommodation-application.schema';
 import { TenancyAgreementSchema } from '../src/schemas/tenancy-agreement.schema';
+import { UpdateHostelBlockDto, UpdateHostelDto, UpdateHostelRoomDto } from '../src/dto/accommodation.dto';
+import { validateSync } from 'class-validator';
 
 test('assignment indexes preserve transfer history while enforcing one active allocation', () => {
     const indexes = AccommodationAssignmentSchema.indexes();
@@ -40,4 +42,22 @@ test('external tenancy execution waits for payment and allocation documents', ()
     assert.ok(statusValues.includes('signed_awaiting_payment'));
     assert.ok(statusValues.includes('payment_confirmed_awaiting_allocation'));
     assert.ok(statusValues.includes('executed'));
+});
+
+test('inventory updates support validated partial edits', () => {
+    const hostel = Object.assign(new UpdateHostelDto(), { name: 'Daniel Hostel' });
+    const block = Object.assign(new UpdateHostelBlockDto(), { allocationOrder: 2 });
+    const room = Object.assign(new UpdateHostelRoomDto(), { capacity: 12 });
+
+    assert.equal(validateSync(hostel).length, 0);
+    assert.equal(validateSync(block).length, 0);
+    assert.equal(validateSync(room).length, 0);
+});
+
+test('inventory room edits reject unsafe field values at the request boundary', () => {
+    const room = Object.assign(new UpdateHostelRoomDto(), { capacity: 0, allocationOrder: 0 });
+    const fields = validateSync(room).flatMap((error) => error.property);
+
+    assert.ok(fields.includes('capacity'));
+    assert.ok(fields.includes('allocationOrder'));
 });
