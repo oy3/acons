@@ -178,7 +178,7 @@ onMounted(() => withRequest(async () => {
 
         <form v-else-if="stage === 'start'" @submit.prevent="submitStart">
           <h2>Start your application</h2>
-          <p>We will email you a secure link so you can verify your address and resume later.</p>
+          <p>We will send you a secure link so you can verify your email address and resume.</p>
           <div v-if="!accommodationConfig.applicationsOpen" class="alert alert-info">External accommodation applications are currently closed.</div>
           <div class="field-grid">
             <div><label for="firstName">First name</label><input id="firstName" v-model.trim="start.firstName" class="form-control" required /></div>
