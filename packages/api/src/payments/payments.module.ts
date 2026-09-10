@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PaymentsController, StaffPaymentsController, PaystackWebhookController } from './payments.controller';
-import { StudentPaymentsController } from './student-payments.controller';
+import { PaymentTransactionsController } from './payment-transactions.controller';
 import { PaymentsService } from './payments.service';
 import { Payment, PaymentSchema } from '../schemas/payment.schema';
-import { StudentPayment, StudentPaymentSchema } from '../schemas/student-payment.schema';
+import { PaymentTransaction, PaymentTransactionSchema } from '../schemas/payment-transaction.schema';
 import { Application, ApplicationSchema } from '../schemas/application.schema';
 import { User, UserSchema } from '../schemas/user.schema';
 import { Program, ProgramSchema } from '../schemas/program.schema';
@@ -24,7 +24,7 @@ import { PaymentsReconciliationScheduler } from './payments-reconciliation.sched
         UploadModule,
         MongooseModule.forFeature([
             { name: Payment.name, schema: PaymentSchema },
-            { name: StudentPayment.name, schema: StudentPaymentSchema },
+            { name: PaymentTransaction.name, schema: PaymentTransactionSchema },
             { name: Application.name, schema: ApplicationSchema },
             { name: User.name, schema: UserSchema },
             { name: Program.name, schema: ProgramSchema },
@@ -35,7 +35,7 @@ import { PaymentsReconciliationScheduler } from './payments-reconciliation.sched
             { name: PaymentDestinationAccount.name, schema: PaymentDestinationAccountSchema },
         ]),
     ],
-    controllers: [PaymentsController, StaffPaymentsController, StudentPaymentsController, PaystackWebhookController],
+    controllers: [PaymentsController, StaffPaymentsController, PaymentTransactionsController, PaystackWebhookController],
     providers: [
         PaymentsService,
         PaymentRemittanceService,

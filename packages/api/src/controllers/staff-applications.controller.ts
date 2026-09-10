@@ -37,7 +37,7 @@ import {
     StudentAcademicSessionDocument,
     StudentAcademicSessionStatus,
 } from '../schemas/student-academic-session.schema';
-import { StudentPayment, StudentPaymentDocument } from '../schemas/student-payment.schema';
+import { PaymentTransaction, PaymentTransactionDocument } from '../schemas/payment-transaction.schema';
 import { ExamAttempt, ExamAttemptDocument } from '../schemas/exam-attempt.schema';
 import { ExamResult, ExamResultDocument } from '../schemas/exam-result.schema';
 import { ExamPassword, ExamPasswordDocument } from '../schemas/exam-password.schema';
@@ -143,7 +143,7 @@ export class StaffApplicationsController {
         @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
         @InjectModel(Student.name) private studentModel: Model<StudentDocument>,
         @InjectModel(StudentAcademicSession.name) private studentAcademicSessionModel: Model<StudentAcademicSessionDocument>,
-        @InjectModel(StudentPayment.name) private studentPaymentModel: Model<StudentPaymentDocument>,
+        @InjectModel(PaymentTransaction.name) private paymentTransactionModel: Model<PaymentTransactionDocument>,
         @InjectModel(ExamAttempt.name) private examAttemptModel: Model<ExamAttemptDocument>,
         @InjectModel(ExamResult.name) private examResultModel: Model<ExamResultDocument>,
         @InjectModel(ExamPassword.name) private examPasswordModel: Model<ExamPasswordDocument>,
@@ -1349,7 +1349,7 @@ export class StaffApplicationsController {
             const user = application.userId as any;
             await this.assertPreStudentLifecycle(application, user);
 
-            const paymentRecords = await this.studentPaymentModel
+            const paymentRecords = await this.paymentTransactionModel
                 .find({
                     $or: [
                         { applicationId: application._id },
@@ -1369,7 +1369,7 @@ export class StaffApplicationsController {
                 { usedBy: user._id },
                 { $pull: { usedBy: user._id } },
             );
-            await this.studentPaymentModel.deleteMany({
+            await this.paymentTransactionModel.deleteMany({
                 $or: [
                     { applicationId: application._id },
                     { userId: user._id },

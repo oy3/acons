@@ -4,19 +4,19 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PaymentsService } from './payments.service';
 
-@ApiTags('Student Portal Payments')
-@Controller('student/payments')
+@ApiTags('Student Portal Payment Transactions')
+@Controller('student/payment-transactions')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
-export class StudentPaymentsController {
-    private readonly logger = new Logger(StudentPaymentsController.name);
+export class PaymentTransactionsController {
+    private readonly logger = new Logger(PaymentTransactionsController.name);
 
     constructor(private readonly paymentsService: PaymentsService) { }
 
     @Get('summary')
     @ApiOperation({ summary: 'Get student payment summary with academic session filter' })
     @ApiResponse({ status: 200, description: 'Payment summary retrieved successfully' })
-    async getStudentPaymentsSummary(
+    async getPaymentTransactionsSummary(
         @Request() req,
         @Query('academicSessionId') academicSessionId?: string
     ) {
@@ -24,7 +24,7 @@ export class StudentPaymentsController {
             const userId = req.user._id.toString();
             this.logger.log(`Getting payment summary for student ${userId} with academic session: ${academicSessionId}`);
 
-            const summary = await this.paymentsService.getStudentPaymentsSummaryWithSession(
+            const summary = await this.paymentsService.getPaymentTransactionsSummaryWithSession(
                 userId,
                 academicSessionId
             );
@@ -34,7 +34,7 @@ export class StudentPaymentsController {
                 data: summary
             };
         } catch (error) {
-            this.logger.error('Error getting student payments summary:', error);
+            this.logger.error('Error getting payment transactions summary:', error);
             throw new HttpException(
                 {
                     success: false,
@@ -59,7 +59,7 @@ export class StudentPaymentsController {
             const userId = req.user._id.toString();
             this.logger.log(`Getting payment history for student ${userId}, session: ${academicSessionId}`);
 
-            const history = await this.paymentsService.getStudentPaymentHistory(
+            const history = await this.paymentsService.getPaymentTransactionHistory(
                 userId,
                 academicSessionId,
                 { page: Number(page), limit: Number(limit) }
@@ -86,7 +86,7 @@ export class StudentPaymentsController {
     @ApiOperation({ summary: 'Get the authenticated student payment-history session filters' })
     async getPaymentHistorySessions(@Request() req) {
         try {
-            const sessions = await this.paymentsService.getStudentPaymentHistorySessions(
+            const sessions = await this.paymentsService.getPaymentTransactionHistorySessions(
                 req.user._id.toString(),
             );
             return { success: true, data: { sessions } };
@@ -113,7 +113,7 @@ export class StudentPaymentsController {
             const userId = req.user._id.toString();
             this.logger.log(`Initializing payment for student ${userId}:`, body);
 
-            const result = await this.paymentsService.initializeStudentPayment(
+            const result = await this.paymentsService.initializePaymentTransaction(
                 userId,
                 body.paymentId,
                 body.email,
@@ -215,7 +215,7 @@ export class StudentPaymentsController {
             const userId = req.user._id.toString();
             this.logger.log(`Getting available payments for student ${userId}, session: ${academicSessionId}`);
 
-            const payments = await this.paymentsService.getAvailableStudentPayments(
+            const payments = await this.paymentsService.getAvailablePaymentTransactions(
                 userId,
                 academicSessionId
             );

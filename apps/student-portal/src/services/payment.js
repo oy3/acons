@@ -7,7 +7,7 @@ import { apiService } from './api.js';
 import { logger } from '@shared/utils/logger';
 import PaystackPop from '@paystack/inline-js';
 
-class StudentPaymentService {
+class PaymentTransactionService {
     constructor() {
         this.paystackPublicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
         this.serverPaymentMethods = {
@@ -170,7 +170,7 @@ class StudentPaymentService {
                 formData.append('academicSessionId', academicSessionId);
             }
 
-            const response = await apiService.post('/student/payments/manual-transfer/submit', formData);
+            const response = await apiService.post('/student/payment-transactions/manual-transfer/submit', formData);
 
             if (response.success) {
                 return {
@@ -385,7 +385,7 @@ class StudentPaymentService {
 }
 
 // Create and export a singleton instance
-export const studentPaymentService = new StudentPaymentService();
+export const paymentTransactionService = new PaymentTransactionService();
 
 // Export the class for creating new instances if needed
-export default StudentPaymentService;
+export default PaymentTransactionService;

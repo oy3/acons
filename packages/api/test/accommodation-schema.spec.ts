@@ -1,0 +1,43 @@
+import { strict as assert } from 'node:assert';
+import { test } from 'node:test';
+import { AccommodationAssignmentSchema } from '../src/schemas/accommodation-assignment.schema';
+import { AccommodationApplicationStatus } from '../src/schemas/accommodation-application.schema';
+import { TenancyAgreementSchema } from '../src/schemas/tenancy-agreement.schema';
+
+test('assignment indexes preserve transfer history while enforcing one active allocation', () => {
+    const indexes = AccommodationAssignmentSchema.indexes();
+    const activeApplicationIndex = indexes.find(([keys, options]) =>
+        keys.accommodationApplicationId === 1 && options.name === 'uniq_active_assignment_per_application',
+    );
+    const activeSlotIndex = indexes.find(([, options]) => options.name === 'uniq_active_room_slot_per_session');
+
+    assert.ok(activeApplicationIndex);
+    assert.equal(activeApplicationIndex?.[1].unique, true);
+    assert.deepEqual(activeApplicationIndex?.[1].partialFilterExpression, { status: 'active' });
+    assert.ok(activeSlotIndex);
+});
+
+test('accommodation lifecycle exposes separate payment-review and allocation states', () => {
+    assert.equal(AccommodationApplicationStatus.AWAITING_AGREEMENT, 'awaiting_agreement');
+    assert.equal(AccommodationApplicationStatus.PAYMENT_PENDING_REVIEW, 'payment_pending_review');
+    assert.equal(AccommodationApplicationStatus.PAID_AWAITING_ALLOCATION, 'paid_awaiting_allocation');
+    assert.equal(AccommodationApplicationStatus.ALLOCATED, 'allocated');
+});
+
+test('tenancy agreements enforce one record per resident and session', () => {
+    const indexes = TenancyAgreementSchema.indexes();
+    const studentIndex = indexes.find(([, options]) => options.name === 'uniq_tenancy_student_session');
+    const externalIndex = indexes.find(([, options]) => options.name === 'uniq_tenancy_external_session');
+
+    assert.equal(studentIndex?.[1].unique, true);
+    assert.deepEqual(studentIndex?.[1].partialFilterExpression, { studentId: { $type: 'objectId' } });
+    assert.equal(externalIndex?.[1].unique, true);
+    assert.deepEqual(externalIndex?.[1].partialFilterExpression, { externalResidentId: { $type: 'objectId' } });
+});
+
+test('external tenancy execution waits for payment and allocation documents', () => {
+    const statusValues = (TenancyAgreementSchema.path('status') as any).enumValues;
+    assert.ok(statusValues.includes('signed_awaiting_payment'));
+    assert.ok(statusValues.includes('payment_confirmed_awaiting_allocation'));
+    assert.ok(statusValues.includes('executed'));
+});

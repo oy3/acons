@@ -1,5 +1,5 @@
 <script>
-import { studentPaymentService } from "../services/payment.js";
+import { paymentTransactionService } from "../services/payment.js";
 import { tenancyAgreementService } from "../services/tenancyAgreement.js";
 import { logger } from "@shared/utils/logger";
 import { useAuthStore } from "../stores/auth.js";
@@ -57,7 +57,7 @@ export default {
 
   computed: {
     paymentMethods() {
-      return studentPaymentService.getAvailablePaymentMethods();
+      return paymentTransactionService.getAvailablePaymentMethods();
     },
 
     accountBalance() {
@@ -142,7 +142,7 @@ export default {
     async loadAcademicSessions() {
       try {
         logger.info("Loading academic sessions");
-        const response = await studentPaymentService.getAcademicSessions();
+        const response = await paymentTransactionService.getAcademicSessions();
 
         if (response.success) {
           this.academicSessions = (response.data.sessions || []).map((session) => ({
@@ -164,7 +164,7 @@ export default {
     },
 
     async loadHistorySessions() {
-      const response = await studentPaymentService.getPaymentHistorySessions();
+      const response = await paymentTransactionService.getPaymentHistorySessions();
       if (response.success) {
         this.historySessions = (response.data.sessions || []).map((session) => ({
           id: session.id,
@@ -183,7 +183,7 @@ export default {
           this.selectedSessionId,
         );
 
-        const summaryResponse = await studentPaymentService.getPaymentSummary(
+        const summaryResponse = await paymentTransactionService.getPaymentSummary(
           this.selectedSessionId,
         );
         if (summaryResponse.success) {
@@ -203,7 +203,7 @@ export default {
       try {
         this.isHistoryLoading = true;
 
-        const response = await studentPaymentService.getPaymentHistory(
+        const response = await paymentTransactionService.getPaymentHistory(
           this.selectedHistorySessionId || null,
           this.currentPage,
           this.perPage,
@@ -223,7 +223,7 @@ export default {
 
     async loadAvailablePayments() {
       try {
-        const response = await studentPaymentService.getAvailablePayments(
+        const response = await paymentTransactionService.getAvailablePayments(
           this.selectedSessionId,
         );
 
@@ -244,7 +244,7 @@ export default {
       this.currentPage = 1;
       const summarySessionId =
         this.selectedHistorySessionId || this.selectedSessionId;
-      const summaryResponse = await studentPaymentService.getPaymentSummary(
+      const summaryResponse = await paymentTransactionService.getPaymentSummary(
         summarySessionId,
       );
       if (summaryResponse.success) {
@@ -282,7 +282,7 @@ export default {
         this.isPaymentLoading = true;
         logger.info("Initiating payment:", paymentId);
 
-        const response = await studentPaymentService.initializePayment(
+        const response = await paymentTransactionService.initializePayment(
           paymentId,
           this.user.email,
           this.selectedSessionId,
@@ -291,7 +291,7 @@ export default {
         if (response.success) {
           try {
             const paymentResult =
-              await studentPaymentService.launchPaystackPayment(response.data);
+              await paymentTransactionService.launchPaystackPayment(response.data);
 
             if (paymentResult.success) {
               this.closePaymentModal();
@@ -494,7 +494,7 @@ export default {
         this.manualTransferSubmitting = true;
         this.isPaymentLoading = true;
 
-        const result = await studentPaymentService.submitManualTransferReceipt(
+        const result = await paymentTransactionService.submitManualTransferReceipt(
           this.selectedFee.id,
           this.manualTransferReceipt,
           this.selectedSessionId,
@@ -541,7 +541,7 @@ export default {
         }
 
         logger.info("Opening receipt for payment:", payment.reference);
-        studentPaymentService.openReceipt(payment.receiptUrl);
+        paymentTransactionService.openReceipt(payment.receiptUrl);
       } catch (error) {
         logger.error("Error downloading receipt:", error);
       }
@@ -563,19 +563,19 @@ export default {
     },
 
     formatCurrency(amount) {
-      return studentPaymentService.formatCurrency(amount);
+      return paymentTransactionService.formatCurrency(amount);
     },
 
     formatDate(date) {
-      return studentPaymentService.formatDate(date);
+      return paymentTransactionService.formatDate(date);
     },
 
     getStatusBadgeClass(status) {
-      return studentPaymentService.getStatusBadgeClass(status);
+      return paymentTransactionService.getStatusBadgeClass(status);
     },
 
     getStatusText(status) {
-      return studentPaymentService.getStatusText(status);
+      return paymentTransactionService.getStatusText(status);
     },
 
     getPaymentReference(payment) {

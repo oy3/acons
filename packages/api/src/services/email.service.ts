@@ -237,6 +237,27 @@ export class EmailService {
     });
   }
 
+  async sendAccommodationVerificationEmail(input: {
+    to: string;
+    firstName: string;
+    verificationUrl: string;
+    expiresInMinutes: number;
+  }): Promise<GmailDeliveryReceipt> {
+    return this.sendEmailWithRetry({
+      from: `ALECONS Accommodation <${process.env.SMTP_USER}>`,
+      to: input.to,
+      subject: 'Verify your ALECONS accommodation application',
+      html: `
+        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#242424;max-width:640px;margin:auto">
+          <h2 style="color:#9f2528">Verify your email address</h2>
+          <p>Hello ${this.escapeHtml(input.firstName)},</p>
+          <p>Use the button below to verify your email and continue your accommodation application.</p>
+          <p><a href="${this.escapeHtml(input.verificationUrl)}" style="display:inline-block;background:#9f2528;color:#fff;padding:12px 18px;text-decoration:none;border-radius:4px">Verify and continue</a></p>
+          <p>This link expires in ${input.expiresInMinutes} minutes. If you did not start this request, you can ignore this email.</p>
+        </div>`,
+    });
+  }
+
   async sendContactEnquiryResponse(input: {
     to: string;
     name: string;

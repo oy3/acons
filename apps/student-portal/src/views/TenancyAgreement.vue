@@ -37,6 +37,7 @@ export default {
       isSubmitting: false,
       agreementStatus: null,
       agreementDocument: null,
+      accommodation: null,
       errors: {},
 
       // User data
@@ -198,6 +199,7 @@ export default {
         if (response.success) {
           this.agreementStatus = response.data.status;
           this.agreementDocument = response.data.documentUrl;
+          this.accommodation = response.data.accommodation || null;
 
           // If agreement is signed, we have the document URL
           if (response.data.hasSigned && response.data.documentUrl) {
@@ -442,10 +444,16 @@ export default {
           style="font-size: 4rem"
         ></i>
         <h4 class="text-success mb-3">Agreement Already Signed</h4>
-        <p class="text-muted mb-4">
-          You have already completed and signed your tenancy agreement. You can
-          now proceed to make accommodation fee payments.
+        <p class="text-muted mb-4" v-if="!['paid_awaiting_allocation', 'allocated'].includes(accommodation?.status)">
+          You have already completed and signed your tenancy agreement. You can now proceed to make the accommodation fee payment.
         </p>
+        <div v-if="accommodation?.status === 'paid_awaiting_allocation'" class="alert alert-warning mb-4">
+          <strong>Payment verified.</strong> Your bed space is awaiting allocation.
+        </div>
+        <div v-if="accommodation?.status === 'allocated' && accommodation.assignment" class="alert alert-success mb-4">
+          <strong>Bed space allocated:</strong>
+          {{ accommodation.assignment.hostel }} / {{ accommodation.assignment.block }} / {{ accommodation.assignment.room }}, slot {{ accommodation.assignment.slotNumber }}.
+        </div>
 
         <!-- Document Download Section -->
         <div v-if="agreementDocumentUrl" class="mb-4">
@@ -465,7 +473,7 @@ export default {
         </div>
 
         <div class="d-flex gap-2 justify-content-center flex-wrap">
-          <button class="btn btn-success btn-lg" @click="goToFinance">
+          <button v-if="!['paid_awaiting_allocation', 'allocated'].includes(accommodation?.status)" class="btn btn-success btn-lg" @click="goToFinance">
             <i class="bi bi-credit-card me-2"></i>
             Go to Finance
           </button>

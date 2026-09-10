@@ -574,17 +574,17 @@ class StaffApiService {
         })
     }
 
-    // Student Payments
-    async getStudentPayments(filters = {}) {
+    // Payment Transactions
+    async getPaymentTransactions(filters = {}) {
         const queryParams = new URLSearchParams(filters).toString()
-        return this.makeRequest(`/staff/payments/student-payments${queryParams ? `?${queryParams}` : ''}`)
+        return this.makeRequest(`/staff/payments/payment-transactions${queryParams ? `?${queryParams}` : ''}`)
     }
 
-    async exportStudentPaymentsPDF(filters = {}) {
+    async exportPaymentTransactionsPDF(filters = {}) {
         const queryParams = new URLSearchParams(filters).toString()
         const url = queryParams
-            ? `${this.baseURL}/staff/payments/student-payments/export-pdf?${queryParams}`
-            : `${this.baseURL}/staff/payments/student-payments/export-pdf`
+            ? `${this.baseURL}/staff/payments/payment-transactions/export-pdf?${queryParams}`
+            : `${this.baseURL}/staff/payments/payment-transactions/export-pdf`
 
         const config = {
             method: 'GET',
@@ -624,7 +624,7 @@ class StaffApiService {
 
             const contentDisposition = response.headers.get('content-disposition') || ''
             const fileNameMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i)
-            const fileName = decodeURIComponent(fileNameMatch?.[1] || fileNameMatch?.[2] || 'student-payments.pdf')
+            const fileName = decodeURIComponent(fileNameMatch?.[1] || fileNameMatch?.[2] || 'payment-transactions.pdf')
 
             const downloadUrl = window.URL.createObjectURL(blob)
             const link = document.createElement('a')
@@ -649,46 +649,46 @@ class StaffApiService {
         }
     }
 
-    // Student Payments Statistics
-    async getStudentPaymentsStats(filters = {}) {
+    // Payment Transactions Statistics
+    async getPaymentTransactionsStats(filters = {}) {
         const queryParams = new URLSearchParams(filters).toString()
-        return this.makeRequest(`/staff/payments/student-payments/stats${queryParams ? `?${queryParams}` : ''}`)
+        return this.makeRequest(`/staff/payments/payment-transactions/stats${queryParams ? `?${queryParams}` : ''}`)
     }
 
-    async syncStudentPaymentRemittance(payload = {}) {
+    async syncPaymentTransactionRemittance(payload = {}) {
         return this.makeRequest('/staff/payments/remittance/sync', {
             method: 'POST',
             body: JSON.stringify(payload),
         })
     }
 
-    async getStudentPaymentRemittanceRecords(filters = {}) {
+    async getPaymentTransactionRemittanceRecords(filters = {}) {
         const queryParams = new URLSearchParams(filters).toString()
         return this.makeRequest(`/staff/payments/remittance-records${queryParams ? `?${queryParams}` : ''}`)
     }
 
     async verifyManualTransferPayment(id, data = {}) {
-        return this.makeRequest(`/staff/payments/student-payments/${id}/verify-manual`, {
+        return this.makeRequest(`/staff/payments/payment-transactions/${id}/verify-manual`, {
             method: 'PATCH',
             body: JSON.stringify(data),
         })
     }
 
     async rejectManualTransferPayment(id, data = {}) {
-        return this.makeRequest(`/staff/payments/student-payments/${id}/reject-manual`, {
+        return this.makeRequest(`/staff/payments/payment-transactions/${id}/reject-manual`, {
             method: 'PATCH',
             body: JSON.stringify(data),
         })
     }
 
-    async reconcileStudentPayment(id) {
-        return this.makeRequest(`/staff/payments/student-payments/${id}/reconcile`, {
+    async reconcilePaymentTransaction(id) {
+        return this.makeRequest(`/staff/payments/payment-transactions/${id}/reconcile`, {
             method: 'PATCH',
         })
     }
 
     async reconcilePendingPaystackPayments(payload = {}) {
-        return this.makeRequest('/staff/payments/student-payments/reconcile-pending', {
+        return this.makeRequest('/staff/payments/payment-transactions/reconcile-pending', {
             method: 'POST',
             body: JSON.stringify(payload),
         })
@@ -1583,6 +1583,31 @@ class StaffApiService {
         link.download = `contact-enquiries-${new Date().toISOString().slice(0, 10)}.csv`
         link.click()
         URL.revokeObjectURL(url)
+    }
+
+    // Accommodation Management
+    async getAccommodationApplications(params = {}) {
+        const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== '')).toString()
+        return this.makeRequest(`/staff/accommodation/applications${query ? `?${query}` : ''}`)
+    }
+    async getAccommodationInventory(sessionId = '') { return this.makeRequest(`/staff/accommodation/inventory${sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : ''}`) }
+    async createHostel(payload) { return this.post('/staff/accommodation/hostels', payload) }
+    async createHostelBlock(payload) { return this.post('/staff/accommodation/blocks', payload) }
+    async createHostelRoom(payload) { return this.post('/staff/accommodation/rooms', payload) }
+    async updateAccommodationInventoryStatus(type, id, active) { return this.post(`/staff/accommodation/${type}s/${id}/status`, { active }) }
+    async allocateAccommodation(applicationId, payload) { return this.post(`/staff/accommodation/applications/${applicationId}/allocate`, payload) }
+    async retryAccommodationAllocations() { return this.post('/staff/accommodation/allocations/retry') }
+    async getAccommodationAudit(applicationId) { return this.makeRequest(`/staff/accommodation/applications/${applicationId}/audit`) }
+
+    async getPaymentReceiptBlob(paymentTransactionId) {
+        const response = await fetch(`${this.baseURL}/staff/payments/payment-transactions/${paymentTransactionId}/receipt`, {
+            headers: { Authorization: `Bearer ${this.token}` },
+        })
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}))
+            throw new Error(error.message || 'Could not load payment receipt')
+        }
+        return response.blob()
     }
 
     // Current user's notification inbox

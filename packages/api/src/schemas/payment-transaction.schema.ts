@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
-export type StudentPaymentDocument = StudentPayment & Document;
+export type PaymentTransactionDocument = PaymentTransaction & Document;
 
 export enum PaymentStatus {
     PENDING = 'pending',
@@ -36,13 +36,40 @@ export enum RemittanceStatus {
     FAILED = 'failed',
 }
 
-@Schema({ timestamps: true })
-export class StudentPayment {
+export enum PaymentPayerType {
+    APPLICANT = 'applicant',
+    STUDENT = 'student',
+    EXTERNAL_RESIDENT = 'external_resident',
+}
+
+export enum PaymentContext {
+    ADMISSION_APPLICATION = 'admission_application',
+    STUDENT_ACCOUNT = 'student_account',
+    ACCOMMODATION_APPLICATION = 'accommodation_application',
+}
+
+@Schema({ timestamps: true, collection: 'paymenttransactions' })
+export class PaymentTransaction {
     @Prop({ type: Types.ObjectId, ref: 'User', required: true })
     userId: Types.ObjectId;
 
     @Prop({ type: Types.ObjectId, ref: 'Application' })
     applicationId?: Types.ObjectId;
+
+    @Prop({ type: Types.ObjectId, ref: 'Student' })
+    studentId?: Types.ObjectId;
+
+    @Prop({ type: Types.ObjectId, ref: 'ExternalResident' })
+    externalResidentId?: Types.ObjectId;
+
+    @Prop({ type: Types.ObjectId, ref: 'AccommodationApplication' })
+    accommodationApplicationId?: Types.ObjectId;
+
+    @Prop({ required: true, enum: PaymentPayerType })
+    payerType: PaymentPayerType;
+
+    @Prop({ required: true, enum: PaymentContext })
+    paymentContext: PaymentContext;
 
     @Prop({ type: Types.ObjectId, ref: 'AcademicSession' })
     academicSessionId?: Types.ObjectId;
@@ -167,9 +194,9 @@ export class StudentPayment {
     updatedAt?: Date;
 }
 
-export const StudentPaymentSchema = SchemaFactory.createForClass(StudentPayment);
+export const PaymentTransactionSchema = SchemaFactory.createForClass(PaymentTransaction);
 
-StudentPaymentSchema.index({
+PaymentTransactionSchema.index({
     method: 1,
     status: 1,
     academicSessionId: 1,
@@ -181,10 +208,12 @@ StudentPaymentSchema.index({
         status: PaymentStatus.SUCCESSFUL,
     },
 });
-StudentPaymentSchema.index({ academicSessionId: 1, status: 1, paymentId: 1, paidAt: -1 });
-StudentPaymentSchema.index({ userId: 1, academicSessionId: 1, paymentId: 1, status: 1 });
+PaymentTransactionSchema.index({ academicSessionId: 1, status: 1, paymentId: 1, paidAt: -1 });
+PaymentTransactionSchema.index({ userId: 1, academicSessionId: 1, paymentId: 1, status: 1 });
+PaymentTransactionSchema.index({ payerType: 1, paymentContext: 1, createdAt: -1 });
+PaymentTransactionSchema.index({ accommodationApplicationId: 1, status: 1, createdAt: -1 });
 
-StudentPaymentSchema.index({
+PaymentTransactionSchema.index({
     method: 1,
     status: 1,
     remittanceStatus: 1,

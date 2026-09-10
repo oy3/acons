@@ -17,6 +17,11 @@ import { SessionControl, SessionControlSchema } from '../schemas/session-control
 import { TenancyAgreement, TenancyAgreementSchema } from '../schemas/tenancy-agreement.schema';
 import { StudentAcademicSession, StudentAcademicSessionSchema } from '../schemas/student-academic-session.schema';
 import { UserManagementModule } from './user-management.module';
+import { AccommodationApplication, AccommodationApplicationSchema } from '../schemas/accommodation-application.schema';
+import { AccommodationAssignment, AccommodationAssignmentSchema } from '../schemas/accommodation-assignment.schema';
+import { Hostel, HostelSchema } from '../schemas/hostel.schema';
+import { HostelBlock, HostelBlockSchema } from '../schemas/hostel-block.schema';
+import { HostelRoom, HostelRoomSchema } from '../schemas/hostel-room.schema';
 
 @Module({
     imports: [
@@ -32,6 +37,11 @@ import { UserManagementModule } from './user-management.module';
             { name: SessionControl.name, schema: SessionControlSchema },
             { name: TenancyAgreement.name, schema: TenancyAgreementSchema },
             { name: StudentAcademicSession.name, schema: StudentAcademicSessionSchema },
+            { name: AccommodationApplication.name, schema: AccommodationApplicationSchema },
+            { name: AccommodationAssignment.name, schema: AccommodationAssignmentSchema },
+            { name: Hostel.name, schema: HostelSchema },
+            { name: HostelBlock.name, schema: HostelBlockSchema },
+            { name: HostelRoom.name, schema: HostelRoomSchema },
         ])
     ],
     controllers: [StudentController, StudentCourseRegistrationController],

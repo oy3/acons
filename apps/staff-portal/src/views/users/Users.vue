@@ -194,7 +194,7 @@ export default {
       const roleClasses = {
         admin: "bg-danger text-white",
         staff: "bg-info text-white",
-        student: "bg-secondary text-white",
+        student: "bg-success text-white",
         applicant: "bg-warning text-dark",
       };
       return roleClasses[role] || "bg-secondary text-white";
