@@ -8,7 +8,7 @@ import { AcademicSessionsService } from '../services/academic-sessions.service';
 import { Application, ApplicationDocument } from '../schemas/application.schema';
 import { User, UserDocument, UserRole } from '../schemas/user.schema';
 import { Student, StudentDocument } from '../schemas/student.schema';
-import { StudentPayment, StudentPaymentDocument } from '../schemas/student-payment.schema';
+import { PaymentTransaction, PaymentTransactionDocument } from '../schemas/payment-transaction.schema';
 import {
     StudentAcademicSession,
     StudentAcademicSessionDocument,
@@ -32,7 +32,7 @@ export class MaintenanceController {
         @InjectModel(Application.name) private readonly applicationModel: Model<ApplicationDocument>,
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
         @InjectModel(Student.name) private readonly studentModel: Model<StudentDocument>,
-        @InjectModel(StudentPayment.name) private readonly studentPaymentModel: Model<StudentPaymentDocument>,
+        @InjectModel(PaymentTransaction.name) private readonly paymentTransactionModel: Model<PaymentTransactionDocument>,
         @InjectModel(StudentAcademicSession.name) private readonly studentAcademicSessionModel: Model<StudentAcademicSessionDocument>,
         private readonly uploadService: UploadService,
     ) { }
@@ -497,7 +497,7 @@ export class MaintenanceController {
 
             for (const student of students) {
                 scanned++;
-                const paymentSessionIds = await this.studentPaymentModel.distinct('academicSessionId', {
+                const paymentSessionIds = await this.paymentTransactionModel.distinct('academicSessionId', {
                     userId: student.userId,
                     academicSessionId: { $exists: true, $ne: null },
                 });

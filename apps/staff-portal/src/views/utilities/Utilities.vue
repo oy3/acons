@@ -82,7 +82,7 @@ export default {
           title: 'Backfill Student Fee Obligations',
           icon: 'bi-database-check',
           variant: 'success',
-          description: 'Create missing fee obligations from each academic session’s student payment controls and reconcile them against successful student payments.',
+          description: 'Create missing fee obligations from each academic session’s student payment controls and reconcile them against successful payment transactions.',
           actionLabel: 'Run Backfill'
         },
         {
@@ -218,7 +218,7 @@ export default {
     async runBackfillFeeObligations() {
       const confirmation = await Swal.fire({
         title: 'Backfill Student Fee Obligations?',
-        html: '<div class="text-start utility-confirmation"><p class="small mb-2">This scans every academic session, creates missing obligations from its retained payment controls, and marks matches from successful student payments as paid.</p><ul class="small mb-0"><li>It does not charge students or create payment transactions.</li><li>Existing obligation amounts are not overwritten.</li><li>The operation is safe to run again.</li></ul></div>',
+        html: '<div class="text-start utility-confirmation"><p class="small mb-2">This scans every academic session, creates missing obligations from its retained payment controls, and marks matches from successful payment transactions as paid.</p><ul class="small mb-0"><li>It does not charge students or create payment transactions.</li><li>Existing obligation amounts are not overwritten.</li><li>The operation is safe to run again.</li></ul></div>',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Run Backfill',
