@@ -29,9 +29,11 @@ import {
     StudentAcademicSessionStatus,
 } from '../schemas/student-academic-session.schema';
 import { TenancyAgreement, TenancyAgreementDocument } from '../schemas/tenancy-agreement.schema';
+import { AccommodationApplicationStatus } from '../schemas/accommodation-application.schema';
 import { MatriculationService } from '../services/matriculation.service';
 import { EmailService } from '../services/email.service';
 import { UploadService } from '../services/upload.service';
+import { TenancyAgreementService } from '../services/tenancy-agreement.service';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 export interface PaymentSummary {
@@ -190,6 +192,7 @@ export class PaymentsService {
         private matriculationService: MatriculationService,
         private emailService: EmailService,
         private uploadService: UploadService,
+        private tenancyAgreementService: TenancyAgreementService,
     ) { }
 
     private getUserAudiencesForContext(
@@ -215,7 +218,7 @@ export class PaymentsService {
     private isManualTransferPending(payment: Partial<PaymentTransaction>): boolean {
         return payment.status === PaymentStatus.PENDING
             && payment.method === PaymentMethod.MANUAL_TRANSFER
-            && !!payment.receiptUrl;
+            && !!(payment.receiptKey || payment.receiptUrl);
     }
 
     private isManualTransferRejected(payment: Partial<PaymentTransaction>): boolean {
@@ -1377,6 +1380,25 @@ export class PaymentsService {
                                 metadata: { hostelId: hostel._id, blockId: block._id, roomId: room._id, slotNumber },
                                 createdAt: now, updatedAt: now,
                             });
+                            if (paymentTransaction.externalResidentId) {
+                                try {
+                                    const resident = await db.collection('externalresidents').findOne({
+                                        _id: paymentTransaction.externalResidentId,
+                                    });
+                                    if (!resident?.externalResidentNumber) {
+                                        throw new Error('External resident record not found');
+                                    }
+                                    await this.tenancyAgreementService.finalizeExternalAccommodationDocuments(
+                                        application._id,
+                                        application.applicationNumber,
+                                        resident.externalResidentNumber,
+                                    );
+                                } catch (error) {
+                                    this.logger.error(
+                                        `Could not prepare or email external accommodation documents for ${application.applicationNumber}: ${error instanceof Error ? error.message : error}`,
+                                    );
+                                }
+                            }
                             return;
                         } catch (error: any) {
                             if (error?.code !== 11000) throw error;
@@ -3959,6 +3981,40 @@ export class PaymentsService {
 
         await paymentTransaction.save();
 
+        let externalAccommodationResumeToken: string | undefined;
+        if (
+            paymentTransaction.payerType === PaymentPayerType.EXTERNAL_RESIDENT
+            && paymentTransaction.paymentContext === PaymentContext.ACCOMMODATION_APPLICATION
+            && paymentTransaction.accommodationApplicationId
+        ) {
+            externalAccommodationResumeToken = crypto.randomBytes(32).toString('hex');
+            const now = new Date();
+            const applications = this.paymentTransactionModel.db.collection('accommodationapplications');
+            await applications.updateOne(
+                { _id: paymentTransaction.accommodationApplicationId },
+                {
+                    $set: {
+                        status: AccommodationApplicationStatus.AWAITING_PAYMENT,
+                        resumeTokenHash: crypto.createHash('sha256').update(externalAccommodationResumeToken).digest('hex'),
+                        resumeTokenExpiresAt: new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000)),
+                        updatedAt: now,
+                    },
+                },
+            );
+            await this.paymentTransactionModel.db.collection('accommodationaudits').insertOne({
+                accommodationApplicationId: paymentTransaction.accommodationApplicationId,
+                action: 'manual_transfer_rejected',
+                actorType: 'staff',
+                actorId: new Types.ObjectId(staffId),
+                metadata: {
+                    reference: paymentTransaction.reference,
+                    reason: paymentTransaction.verificationRemarks,
+                },
+                createdAt: now,
+                updatedAt: now,
+            });
+        }
+
         try {
             const [user, payment] = await Promise.all([
                 this.userModel.findById(paymentTransaction.userId).lean(),
@@ -3966,9 +4022,11 @@ export class PaymentsService {
             ]);
 
             if (user?.email) {
-                const portalUrl = user.role === UserRole.STUDENT
-                    ? process.env.STUDENT_PORTAL_URL
-                    : process.env.APPLICATION_PORTAL_URL;
+                const portalUrl = externalAccommodationResumeToken
+                    ? `${process.env.WEBSITE_URL || 'https://alecons.edu.ng'}/accommodation/external?resumeToken=${encodeURIComponent(externalAccommodationResumeToken)}`
+                    : user.role === UserRole.STUDENT
+                        ? process.env.STUDENT_PORTAL_URL
+                        : process.env.APPLICATION_PORTAL_URL;
 
                 await this.emailService.sendManualPaymentRejectedEmail(
                     user.email,

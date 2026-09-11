@@ -110,6 +110,34 @@ export class AccommodationService {
     });
   }
 
+  private async prepareExternalAllocationDocuments(
+    application: AccommodationApplicationDocument,
+  ) {
+    if (
+      application.applicantType !== AccommodationApplicantType.EXTERNAL
+      || !application.externalResidentId
+    ) return;
+
+    try {
+      const resident = await this.externalResidentModel
+        .findById(application.externalResidentId)
+        .select('externalResidentNumber')
+        .lean();
+      if (!resident?.externalResidentNumber) {
+        throw new NotFoundException('External resident record not found');
+      }
+      await this.tenancyAgreementService.finalizeExternalAccommodationDocuments(
+        application._id as Types.ObjectId,
+        application.applicationNumber,
+        resident.externalResidentNumber,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Could not prepare or email external accommodation documents for ${application.applicationNumber}: ${error instanceof Error ? error.message : error}`,
+      );
+    }
+  }
+
   private async getOpenExternalControl() {
     const now = new Date();
     const session = await this.academicSessionModel
@@ -848,6 +876,7 @@ export class AccommodationService {
                   slotNumber: slot,
                 },
               );
+              await this.prepareExternalAllocationDocuments(application);
               return assignment;
             } catch (error: any) {
               if (error?.code !== 11000) throw error;
@@ -1049,6 +1078,9 @@ export class AccommodationService {
         reason: normalizedNote,
       },
     );
+    if (!transferred) {
+      await this.prepareExternalAllocationDocuments(application);
+    }
     return assignment;
   }
 

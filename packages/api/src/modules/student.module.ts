@@ -23,6 +23,7 @@ import { Hostel, HostelSchema } from '../schemas/hostel.schema';
 import { HostelBlock, HostelBlockSchema } from '../schemas/hostel-block.schema';
 import { HostelRoom, HostelRoomSchema } from '../schemas/hostel-room.schema';
 import { PaymentTransaction, PaymentTransactionSchema } from '../schemas/payment-transaction.schema';
+import { EmailService } from '../services/email.service';
 
 @Module({
     imports: [
@@ -47,7 +48,7 @@ import { PaymentTransaction, PaymentTransactionSchema } from '../schemas/payment
         ])
     ],
     controllers: [StudentController, StudentCourseRegistrationController],
-    providers: [StudentService, CourseRegistrationService, TenancyAgreementService, UploadService],
+    providers: [StudentService, CourseRegistrationService, TenancyAgreementService, UploadService, EmailService],
     exports: [StudentService, TenancyAgreementService, CourseRegistrationService] // Export so other modules can use them
 })
 export class StudentModule { }

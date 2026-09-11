@@ -18,10 +18,12 @@ import { EmailService } from '../services/email.service';
 import { UploadModule } from '../modules/upload.module';
 import { PaymentRemittanceService } from './payment-remittance.service';
 import { PaymentsReconciliationScheduler } from './payments-reconciliation.scheduler';
+import { StudentModule } from '../modules/student.module';
 
 @Module({
     imports: [
         UploadModule,
+        StudentModule,
         MongooseModule.forFeature([
             { name: Payment.name, schema: PaymentSchema },
             { name: PaymentTransaction.name, schema: PaymentTransactionSchema },

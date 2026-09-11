@@ -17,6 +17,7 @@ import {
   ApplicationDocument,
 } from "../schemas/application.schema";
 import { UploadService } from "./upload.service";
+import { EmailService } from "./email.service";
 import { AccommodationApplication, AccommodationApplicationDocument, AccommodationApplicantType, AccommodationApplicationStatus } from '../schemas/accommodation-application.schema';
 import { SessionControl, SessionControlDocument } from '../schemas/session-control.schema';
 import { AccommodationAssignment, AccommodationAssignmentDocument } from '../schemas/accommodation-assignment.schema';
@@ -82,8 +83,112 @@ export class TenancyAgreementService {
     private accommodationAssignmentModel: Model<AccommodationAssignmentDocument>,
     @InjectModel(PaymentTransaction.name)
     private paymentTransactionModel: Model<PaymentTransactionDocument>,
-    private uploadService: UploadService
+    private uploadService: UploadService,
+    private emailService: EmailService,
   ) { }
+
+  private async emailExternalAllocationDocuments(
+    accommodationApplicationId: Types.ObjectId,
+    applicationNumber: string,
+    externalResidentNumber: string,
+    agreement: TenancyAgreementDocument,
+    assignment: AccommodationAssignmentDocument,
+  ) {
+    const transactions = this.paymentTransactionModel.db.collection('paymenttransactions');
+    const transaction = await transactions.findOne(
+      {
+        accommodationApplicationId,
+        payerType: 'external_resident',
+        paymentContext: 'accommodation_application',
+        status: 'successful',
+      },
+      { sort: { paidAt: -1, createdAt: -1 } },
+    );
+    if (!transaction || !agreement.documentKey || !assignment.allocationSlipKey) return;
+
+    const staleClaim = new Date(Date.now() - (10 * 60 * 1000));
+    const claimed = await transactions.updateOne(
+      {
+        _id: transaction._id,
+        $or: [
+          { allocationDocumentsEmailStatus: { $exists: false } },
+          { allocationDocumentsEmailStatus: 'failed' },
+          {
+            allocationDocumentsEmailStatus: 'sending',
+            allocationDocumentsEmailAttemptedAt: { $lt: staleClaim },
+          },
+        ],
+      },
+      {
+        $set: {
+          allocationDocumentsEmailStatus: 'sending',
+          allocationDocumentsEmailAttemptedAt: new Date(),
+        },
+        $inc: { allocationDocumentsEmailAttempts: 1 },
+        $unset: { allocationDocumentsEmailError: '' },
+      },
+    );
+    if (!claimed.modifiedCount) return;
+
+    try {
+      const [user, tenancyAgreement, allocationSlip] = await Promise.all([
+        this.paymentTransactionModel.db.collection('users').findOne({ _id: transaction.userId }),
+        this.uploadService.getFileBufferByKey(agreement.documentKey),
+        this.uploadService.getFileBufferByKey(assignment.allocationSlipKey),
+      ]);
+      if (!user?.email) throw new Error('External resident email address was not found');
+
+      await this.emailService.sendExternalAccommodationAllocatedEmail({
+        to: user.email,
+        firstName: user.firstName || 'Resident',
+        applicationNumber,
+        externalResidentNumber,
+        hostel: (assignment.hostelId as any)?.name || 'Assigned hostel',
+        block: (assignment.blockId as any)?.name || 'Assigned block',
+        room: (assignment.roomId as any)?.name || 'Assigned room',
+        slotNumber: assignment.slotNumber,
+        tenancyAgreement,
+        allocationSlip,
+      });
+
+      const deliveredAt = new Date();
+      await transactions.updateOne(
+        { _id: transaction._id, allocationDocumentsEmailStatus: 'sending' },
+        {
+          $set: {
+            allocationDocumentsEmailStatus: 'sent',
+            allocationDocumentsEmailedAt: deliveredAt,
+          },
+        },
+      );
+      await this.paymentTransactionModel.db.collection('accommodationaudits').updateOne(
+        { accommodationApplicationId, action: 'allocation_documents_emailed' },
+        {
+          $setOnInsert: {
+            accommodationApplicationId,
+            action: 'allocation_documents_emailed',
+            actorType: 'system',
+            metadata: { transactionId: transaction._id, deliveredAt },
+            createdAt: deliveredAt,
+            updatedAt: deliveredAt,
+          },
+        },
+        { upsert: true },
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await transactions.updateOne(
+        { _id: transaction._id, allocationDocumentsEmailStatus: 'sending' },
+        {
+          $set: {
+            allocationDocumentsEmailStatus: 'failed',
+            allocationDocumentsEmailError: message.slice(0, 500),
+          },
+        },
+      );
+      this.logger.error(`Could not email external accommodation documents for ${applicationNumber}: ${message}`);
+    }
+  }
 
   private tenancyConfiguration(session: AcademicSessionDocument | any) {
     const address = (process.env.ACCOMMODATION_HOSTEL_ADDRESS || '').trim();
@@ -541,6 +646,13 @@ export class TenancyAgreementService {
       agreement.status = TenancyAgreementStatus.EXECUTED;
       await agreement.save();
     }
+    await this.emailExternalAllocationDocuments(
+      accommodationApplicationId,
+      applicationNumber,
+      externalResidentNumber,
+      agreement,
+      assignment,
+    );
     return { agreement, assignment };
   }
 

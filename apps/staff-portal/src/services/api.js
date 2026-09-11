@@ -1720,6 +1720,17 @@ class StaffApiService {
         return this.makeRequest(`/staff/accommodation/applications/${applicationId}/audit`)
     }
 
+    async getUserProfileImageBlob(userId) {
+        const response = await fetch(`${this.baseURL}/staff/users/${userId}/profile-image`, {
+            headers: { Authorization: `Bearer ${this.token}` },
+        })
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}))
+            throw new Error(error.message || 'Could not load profile image')
+        }
+        return response.blob()
+    }
+
     async getPaymentReceiptBlob(paymentTransactionId) {
         const response = await fetch(`${this.baseURL}/staff/payments/payment-transactions/${paymentTransactionId}/receipt`, {
             headers: { Authorization: `Bearer ${this.token}` },

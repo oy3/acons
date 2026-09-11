@@ -1460,7 +1460,7 @@ export default {
       return (
         this.isManualTransferPayment(payment) &&
         payment.status === "pending" &&
-        !!payment.receiptUrl
+        !!(payment.receiptKey || payment.receiptUrl)
       );
     },
 

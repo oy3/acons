@@ -139,6 +139,12 @@ onMounted(() => withRequest(async () => {
     await router.replace({ path: route.path });
     return;
   }
+  if (route.query.resumeToken) {
+    storeResumeToken(String(route.query.resumeToken));
+    await router.replace({ path: route.path });
+    await loadApplication();
+    return;
+  }
   if (route.query.paymentReference && resumeToken.value) {
     application.value = await publicApiService.verifyExternalAccommodationPayment(resumeToken.value, String(route.query.paymentReference));
     await router.replace({ path: route.path });
