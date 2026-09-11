@@ -30,7 +30,6 @@ require_var VITE_APP_APPLICATION_PORTAL_URL
 require_var VITE_APP_STUDENT_PORTAL_URL
 require_var VITE_APP_STAFF_PORTAL_URL
 require_var VITE_APP_API_URL
-require_var VITE_PAYSTACK_PUBLIC_KEY
 
 export VITE_API_URL="${VITE_API_URL:-$VITE_APP_API_URL}"
 export VITE_API_BASE_URL="${VITE_API_BASE_URL:-$VITE_APP_API_URL}"
@@ -65,12 +64,10 @@ write_env_file "$ROOT_DIR/apps/website/.env.production" \
 
 write_env_file "$ROOT_DIR/apps/application-portal/.env.production" \
     VITE_APP_API_URL \
-    VITE_APP_STUDENT_PORTAL_URL \
-    VITE_PAYSTACK_PUBLIC_KEY
+    VITE_APP_STUDENT_PORTAL_URL
 
 write_env_file "$ROOT_DIR/apps/student-portal/.env.production" \
-    VITE_APP_API_URL \
-    VITE_PAYSTACK_PUBLIC_KEY
+    VITE_APP_API_URL
 
 write_env_file "$ROOT_DIR/apps/staff-portal/.env.production" \
     VITE_API_URL \

@@ -179,6 +179,24 @@ class ApiService {
         return this.makeRequest(endpoint, { method: 'DELETE' });
     }
 
+    async downloadFile(endpoint) {
+        const response = await fetch(`${this.baseURL}${endpoint}`, {
+            headers: this.getHeaders(),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || errorData.error || 'File download failed');
+        }
+
+        const disposition = response.headers.get('content-disposition') || '';
+        const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+        return {
+            blob: await response.blob(),
+            filename: filenameMatch?.[1] || 'payment-receipt.pdf',
+        };
+    }
+
     // Handle token expiration
     handleTokenExpiration() {
         // Import dynamically to avoid circular dependency

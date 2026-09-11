@@ -289,9 +289,10 @@ class StaffApiService {
         })
     }
 
-    async completeScreening(id) {
+    async completeScreening(id, completionData = {}) {
         return this.makeRequest(`/staff/applications/${id}/complete-screening`, {
             method: 'PATCH',
+            body: JSON.stringify(completionData),
         })
     }
 

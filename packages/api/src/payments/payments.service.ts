@@ -32,6 +32,7 @@ import { TenancyAgreement, TenancyAgreementDocument } from '../schemas/tenancy-a
 import { MatriculationService } from '../services/matriculation.service';
 import { EmailService } from '../services/email.service';
 import { UploadService } from '../services/upload.service';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 export interface PaymentSummary {
     id: string;
@@ -3057,6 +3058,110 @@ export class PaymentsService {
                     ? 'image/webp'
                     : 'image/jpeg';
         return { buffer, filename, contentType };
+    }
+
+    async generatePaymentTransactionReceipt(paymentTransactionId: string, userId: string) {
+        if (!Types.ObjectId.isValid(paymentTransactionId)) {
+            throw new NotFoundException('Payment transaction not found');
+        }
+
+        const transaction: any = await this.paymentTransactionModel
+            .findOne({
+                _id: new Types.ObjectId(paymentTransactionId),
+                userId: new Types.ObjectId(userId),
+                status: PaymentStatus.SUCCESSFUL,
+            })
+            .populate('userId', 'firstName otherName lastName email')
+            .populate('paymentId', 'name description paymentCode')
+            .populate('academicSessionId', 'sessionYear title')
+            .lean();
+
+        if (!transaction) {
+            throw new NotFoundException('A completed payment transaction was not found');
+        }
+
+        const pdf = await PDFDocument.create();
+        const page = pdf.addPage([595.28, 841.89]);
+        const regular = await pdf.embedFont(StandardFonts.Helvetica);
+        const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+        const primary = rgb(0.1, 0.37, 0.37);
+        const muted = rgb(0.38, 0.42, 0.46);
+        const user = transaction.userId || {};
+        const payment = transaction.paymentId || {};
+        const session = transaction.academicSessionId || {};
+        const payerName = [user.firstName, user.otherName, user.lastName]
+            .filter(Boolean)
+            .join(' ') || 'Student';
+        const paidAt = transaction.paidAt || transaction.updatedAt || transaction.createdAt;
+        const formatLabel = (value: unknown) => String(value || 'Not available')
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, character => character.toUpperCase());
+        const rows = [
+            ['Payer', payerName],
+            ['Email', user.email || 'Not available'],
+            ['Payment', payment.name || 'Payment'],
+            ['Academic session', session.title || session.sessionYear || 'Not available'],
+            ['Reference', transaction.reference],
+            ['Method', formatLabel(transaction.method)],
+            ['Channel', formatLabel(transaction.channel || transaction.method)],
+            ['Status', 'Paid'],
+            ['Payment date', paidAt ? new Intl.DateTimeFormat('en-NG', {
+                dateStyle: 'long',
+                timeStyle: 'short',
+                timeZone: 'Africa/Lagos',
+            }).format(new Date(paidAt)) : 'Not available'],
+        ];
+
+        page.drawText('ALEBIOSU COLLEGE OF NURSING SCIENCES', {
+            x: 48, y: 785, size: 14, font: bold, color: primary,
+        });
+        page.drawText('PAYMENT RECEIPT', {
+            x: 48, y: 742, size: 24, font: bold, color: rgb(0.08, 0.1, 0.13),
+        });
+        page.drawText('Official record of a completed payment transaction', {
+            x: 48, y: 720, size: 10, font: regular, color: muted,
+        });
+        page.drawLine({
+            start: { x: 48, y: 700 }, end: { x: 547, y: 700 }, thickness: 1, color: rgb(0.86, 0.88, 0.9),
+        });
+
+        page.drawText(`NGN ${Number(transaction.amount || 0).toLocaleString('en-NG', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        })}`, {
+            x: 48, y: 652, size: 25, font: bold, color: primary,
+        });
+
+        let y = 604;
+        for (const [label, value] of rows) {
+            page.drawText(label, { x: 48, y, size: 9, font: regular, color: muted });
+            page.drawText(String(value), {
+                x: 190, y, size: String(value).length > 48 ? 8 : 10, font: bold, color: rgb(0.08, 0.1, 0.13),
+            });
+            page.drawLine({
+                start: { x: 48, y: y - 12 }, end: { x: 547, y: y - 12 }, thickness: 0.5, color: rgb(0.9, 0.91, 0.92),
+            });
+            y -= 42;
+        }
+
+        page.drawText('This receipt was generated electronically and does not require a signature.', {
+            x: 48, y: 92, size: 9, font: regular, color: muted,
+        });
+        page.drawText(`Generated ${new Intl.DateTimeFormat('en-NG', {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+            timeZone: 'Africa/Lagos',
+        }).format(new Date())}`, {
+            x: 48, y: 72, size: 8, font: regular, color: muted,
+        });
+
+        const buffer = Buffer.from(await pdf.save());
+        const safeReference = String(transaction.reference || transaction._id).replace(/[^a-zA-Z0-9_-]/g, '-');
+        return {
+            buffer,
+            filename: `payment-receipt-${safeReference}.pdf`,
+            contentType: 'application/pdf',
+        };
     }
 
     // Student Portal Specific Methods

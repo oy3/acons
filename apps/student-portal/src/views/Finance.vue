@@ -4,6 +4,7 @@ import { accommodationService } from "../services/accommodation.js";
 import { logger } from "@shared/utils/logger";
 import { useAuthStore } from "../stores/auth.js";
 import Swal from "sweetalert2";
+import { Offcanvas } from "bootstrap";
 
 const ALLOWED_RECEIPT_TYPES = ["image/png", "image/jpeg", "application/pdf"];
 const MAX_RECEIPT_SIZE = 1024 * 1024;
@@ -52,6 +53,7 @@ export default {
       manualTransferReceipt: null,
       manualTransferReceiptName: "",
       manualTransferSubmitting: false,
+      selectedTransactionReceipt: null,
     };
   },
 
@@ -112,6 +114,10 @@ export default {
 
   beforeUnmount() {
     document.removeEventListener("keydown", this.handleKeydown);
+    const receiptPanel = document.getElementById("transactionReceiptOffcanvas");
+    if (receiptPanel) {
+      Offcanvas.getInstance(receiptPanel)?.dispose();
+    }
   },
 
   methods: {
@@ -528,22 +534,31 @@ export default {
       }
     },
 
-    async downloadReceipt(payment) {
-      try {
-        if (!payment?.receiptUrl) {
-          Swal.fire({
-            icon: "info",
-            title: "Receipt unavailable",
-            text: "No uploaded receipt is available for this payment.",
-            confirmButtonText: "OK",
-          });
-          return;
+    viewTransactionReceipt(payment) {
+      if (payment?.status !== "successful") return;
+      this.selectedTransactionReceipt = payment;
+      this.$nextTick(() => {
+        const receiptPanel = document.getElementById(
+          "transactionReceiptOffcanvas",
+        );
+        if (receiptPanel) {
+          Offcanvas.getOrCreateInstance(receiptPanel).show();
         }
+      });
+    },
 
-        logger.info("Opening receipt for payment:", payment.reference);
-        paymentTransactionService.openReceipt(payment.receiptUrl);
+    async downloadTransactionReceipt(payment) {
+      try {
+        if (payment?.status !== "successful") return;
+        await paymentTransactionService.downloadTransactionReceipt(payment.id);
       } catch (error) {
-        logger.error("Error downloading receipt:", error);
+        logger.error("Error downloading transaction receipt:", error);
+        await Swal.fire({
+          icon: "error",
+          title: "Receipt Unavailable",
+          text: error.message || "The transaction receipt could not be downloaded.",
+          confirmButtonText: "OK",
+        });
       }
     },
 
@@ -926,20 +941,18 @@ export default {
                       <div class="btn-group btn-group-sm">
                         <button
                           class="btn btn-outline-primary"
-                          :title="
-                            payment.receiptUrl
-                              ? 'View Receipt'
-                              : 'Receipt unavailable'
-                          "
-                          @click="downloadReceipt(payment)"
+                          title="View transaction receipt"
+                          :disabled="payment.status !== 'successful'"
+                          aria-controls="transactionReceiptOffcanvas"
+                          @click="viewTransactionReceipt(payment)"
                         >
                           <i class="bi bi-receipt"></i>
                         </button>
                         <button
-                          v-if="payment.receiptUrl"
                           class="btn btn-outline-secondary"
-                          title="Download"
-                          @click="downloadReceipt(payment)"
+                          title="Download transaction receipt"
+                          :disabled="payment.status !== 'successful'"
+                          @click="downloadTransactionReceipt(payment)"
                         >
                           <i class="bi bi-download"></i>
                         </button>
@@ -1196,6 +1209,85 @@ export default {
               </button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="offcanvas offcanvas-end"
+      tabindex="-1"
+      id="transactionReceiptOffcanvas"
+      aria-labelledby="transactionReceiptOffcanvasLabel"
+    >
+      <div class="offcanvas-header border-bottom">
+        <div>
+          <small class="text-uppercase text-muted fw-semibold">Transaction</small>
+          <h5 class="offcanvas-title fw-bold mb-0" id="transactionReceiptOffcanvasLabel">
+            Payment Receipt
+          </h5>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="offcanvas"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div v-if="selectedTransactionReceipt" class="offcanvas-body">
+        <div class="text-center py-3 mb-4 border-bottom">
+          <div class="text-success mb-2"><i class="bi bi-check-circle-fill fs-2"></i></div>
+          <h4 class="fw-bold mb-1">
+            {{ formatCurrency(selectedTransactionReceipt.amount) }}
+          </h4>
+          <p class="text-muted mb-2">
+            {{ selectedTransactionReceipt.paymentId?.name || "Payment" }}
+          </p>
+          <span class="badge bg-success">Paid</span>
+        </div>
+
+        <ul class="list-group list-group-flush mb-4">
+          <li class="list-group-item px-0 py-3">
+            <small class="text-muted d-block">Description</small>
+            <span class="fw-semibold">
+              {{ selectedTransactionReceipt.paymentId?.description || selectedTransactionReceipt.paymentId?.name }}
+            </span>
+          </li>
+          <li class="list-group-item px-0 py-3">
+            <small class="text-muted d-block">Reference</small>
+            <code class="text-dark text-break">{{ selectedTransactionReceipt.reference }}</code>
+          </li>
+          <li class="list-group-item px-0 py-3 d-flex justify-content-between gap-3">
+            <div>
+              <small class="text-muted d-block">Payment method</small>
+              <span class="fw-semibold text-capitalize">
+                {{ getMethodLabel(selectedTransactionReceipt) }}
+              </span>
+            </div>
+            <div class="text-end">
+              <small class="text-muted d-block">Transaction fee</small>
+              <span class="fw-semibold">
+                {{ formatCurrency(selectedTransactionReceipt.fee || 0) }}
+              </span>
+            </div>
+          </li>
+          <li class="list-group-item px-0 py-3">
+            <small class="text-muted d-block">Payment date</small>
+            <span class="fw-semibold">{{ formatDate(selectedTransactionReceipt.paidAt) }}</span>
+          </li>
+          <li v-if="selectedTransactionReceipt.remarks" class="list-group-item px-0 py-3">
+            <small class="text-muted d-block">Remarks</small>
+            <span class="fw-semibold">{{ selectedTransactionReceipt.remarks }}</span>
+          </li>
+        </ul>
+
+        <div class="d-grid">
+          <button
+            type="button"
+            class="btn btn-primary"
+            @click="downloadTransactionReceipt(selectedTransactionReceipt)"
+          >
+            <i class="bi bi-download me-2"></i>Download Receipt
+          </button>
         </div>
       </div>
     </div>
