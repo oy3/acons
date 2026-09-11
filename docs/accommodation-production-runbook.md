@@ -57,8 +57,9 @@ fields.
 ## Production configuration
 
 Set `ACCOMMODATION_HOSTEL_ADDRESS` for the legal hostel address printed on
-new tenancy agreements. When it is omitted, the API uses `SCHOOL_ADDRESS` and
-then the institutional address fallback.
+internal and external tenancy agreements. This value is required; the API does
+not substitute a frontend setting or a general school address. Tenancy start
+and end dates are always read from the selected academic session in the API.
 
 For local development, place it in `packages/api/.env.development`. For
 production, add it as a variable in the GitHub `production` Environment; the

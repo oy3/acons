@@ -5,6 +5,12 @@ import { AccommodationApplicationStatus } from '../src/schemas/accommodation-app
 import { TenancyAgreementSchema } from '../src/schemas/tenancy-agreement.schema';
 import { UpdateHostelBlockDto, UpdateHostelDto, UpdateHostelRoomDto } from '../src/dto/accommodation.dto';
 import { validateSync } from 'class-validator';
+import { plainToInstance } from 'class-transformer';
+import {
+    SaveInternalAccommodationAgreementDraftDto,
+    SubmitInternalAccommodationAgreementDto,
+} from '../src/dto/internal-accommodation.dto';
+import { AccommodationApplicationSchema } from '../src/schemas/accommodation-application.schema';
 
 test('assignment indexes preserve transfer history while enforcing one active allocation', () => {
     const indexes = AccommodationAssignmentSchema.indexes();
@@ -60,4 +66,34 @@ test('inventory room edits reject unsafe field values at the request boundary', 
 
     assert.ok(fields.includes('capacity'));
     assert.ok(fields.includes('allocationOrder'));
+});
+
+test('accommodation agreement drafts allow incomplete validated fields', () => {
+    const draft = plainToInstance(SaveInternalAccommodationAgreementDraftDto, {
+        personalInfo: { residentialAddress: '12 College Road' },
+        guarantorInfo: { relationship: 'mother' },
+    });
+    assert.equal(validateSync(draft).length, 0);
+    assert.equal((AccommodationApplicationSchema.path('agreementDraft') as any).options.select, false);
+});
+
+test('final accommodation agreement submission requires complete details and acceptance', () => {
+    const incomplete = plainToInstance(SubmitInternalAccommodationAgreementDto, {
+        personalInfo: {}, parentInfo: {}, guarantorInfo: {}, agreementTerms: { agreedToTerms: true },
+    });
+    assert.ok(validateSync(incomplete).length > 0);
+
+    const complete = plainToInstance(SubmitInternalAccommodationAgreementDto, {
+        personalInfo: {
+            tenantName: 'Ada Student', courseOfStudy: 'ND Nursing',
+            residentialAddress: '12 College Road', phoneNumber: '08031234567',
+        },
+        parentInfo: { name: 'Pat Student', phoneNumber: '08039876543' },
+        guarantorInfo: {
+            name: 'Pat Student', phoneNumber: '08039876543', address: '12 College Road',
+            occupation: 'Teacher', relationship: 'mother',
+        },
+        agreementTerms: { agreedToTerms: true },
+    });
+    assert.equal(validateSync(complete).length, 0);
 });

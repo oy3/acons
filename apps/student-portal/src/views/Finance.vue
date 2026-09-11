@@ -1,6 +1,6 @@
 <script>
 import { paymentTransactionService } from "../services/payment.js";
-import { tenancyAgreementService } from "../services/tenancyAgreement.js";
+import { accommodationService } from "../services/accommodation.js";
 import { logger } from "@shared/utils/logger";
 import { useAuthStore } from "../stores/auth.js";
 import Swal from "sweetalert2";
@@ -336,7 +336,7 @@ export default {
     },
 
     async ensureAccommodationPaymentAllowed(paymentCode) {
-      if (!tenancyAgreementService.isAccommodationPayment(paymentCode)) {
+      if (!accommodationService.isAccommodationPayment(paymentCode)) {
         return true;
       }
 
@@ -345,7 +345,7 @@ export default {
       );
 
       const eligibilityCheck =
-        await tenancyAgreementService.canMakeAccommodationPayment();
+        await accommodationService.canMakeAccommodationPayment();
 
       if (eligibilityCheck.canPay) {
         return true;
@@ -363,7 +363,7 @@ export default {
       });
 
       if (result.isConfirmed) {
-        this.$router.push("/tenancy-agreement");
+        this.$router.push("/accommodation/agreement");
       }
 
       return false;

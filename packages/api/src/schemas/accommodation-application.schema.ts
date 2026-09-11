@@ -72,6 +72,12 @@ export class AccommodationApplication {
 
     @Prop()
     allocatedAt?: Date;
+
+    @Prop({ type: Object, select: false })
+    agreementDraft?: Record<string, unknown>;
+
+    @Prop()
+    agreementDraftSavedAt?: Date;
 }
 
 export const AccommodationApplicationSchema = SchemaFactory.createForClass(AccommodationApplication);

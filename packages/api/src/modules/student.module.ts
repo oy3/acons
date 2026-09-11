@@ -22,6 +22,7 @@ import { AccommodationAssignment, AccommodationAssignmentSchema } from '../schem
 import { Hostel, HostelSchema } from '../schemas/hostel.schema';
 import { HostelBlock, HostelBlockSchema } from '../schemas/hostel-block.schema';
 import { HostelRoom, HostelRoomSchema } from '../schemas/hostel-room.schema';
+import { PaymentTransaction, PaymentTransactionSchema } from '../schemas/payment-transaction.schema';
 
 @Module({
     imports: [
@@ -42,6 +43,7 @@ import { HostelRoom, HostelRoomSchema } from '../schemas/hostel-room.schema';
             { name: Hostel.name, schema: HostelSchema },
             { name: HostelBlock.name, schema: HostelBlockSchema },
             { name: HostelRoom.name, schema: HostelRoomSchema },
+            { name: PaymentTransaction.name, schema: PaymentTransactionSchema },
         ])
     ],
     controllers: [StudentController, StudentCourseRegistrationController],

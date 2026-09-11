@@ -713,7 +713,7 @@ export class PaymentsService {
         });
 
         if (!tenancyAgreement) {
-            throw new Error('You must sign the tenancy agreement before making accommodation fee payments. Please go to the Tenancy Agreement section first.');
+            throw new Error('You must sign the accommodation agreement before making this payment. Please go to Accommodation first.');
         }
 
         const application = await this.paymentModel.db.collection('accommodationapplications').findOne({

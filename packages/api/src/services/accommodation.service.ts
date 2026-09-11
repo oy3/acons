@@ -163,6 +163,8 @@ export class AccommodationService {
         (!config.applicationCloseAt ||
           now <= new Date(config.applicationCloseAt)),
     );
+    const hostelAddress = (process.env.ACCOMMODATION_HOSTEL_ADDRESS || '').trim();
+    if (!hostelAddress) throw new BadRequestException('Accommodation hostel address is not configured');
     return {
       applicationsOpen,
       academicSession: {
@@ -172,10 +174,7 @@ export class AccommodationService {
       },
       categories,
       agreement: {
-        hostelAddress:
-          process.env.ACCOMMODATION_HOSTEL_ADDRESS ||
-          process.env.SCHOOL_ADDRESS ||
-          "Alebiosu College of Nursing Sciences, Iyamoye-Abuja Road, Omuoke, Ekiti State, Nigeria",
+        hostelAddress,
         tenancyStartDate: session.startDate.toISOString().slice(0, 10),
         tenancyEndDate: session.endDate.toISOString().slice(0, 10),
       },
@@ -599,10 +598,11 @@ export class AccommodationService {
           relationship: input.guarantorRelationship.trim(),
         },
         hostelInfo: {
-          address:
-            process.env.ACCOMMODATION_HOSTEL_ADDRESS ||
-            process.env.SCHOOL_ADDRESS ||
-            "Alebiosu College of Nursing Sciences, Iyamoye-Abuja Road, Omuoke, Ekiti State, Nigeria",
+          address: (() => {
+            const value = (process.env.ACCOMMODATION_HOSTEL_ADDRESS || '').trim();
+            if (!value) throw new BadRequestException('Accommodation hostel address is not configured');
+            return value;
+          })(),
           tenancyStartDate: session.startDate.toISOString().slice(0, 10),
           tenancyEndDate: session.endDate.toISOString().slice(0, 10),
         },

@@ -204,6 +204,35 @@ export class UploadService {
         return { url: '', key, type: documentType };
     }
 
+    async uploadPrivateStudentAccommodationDocument(
+        file: Express.Multer.File,
+        matriculationNumber: string,
+        applicationNumber: string,
+        documentType: 'tenancy_agreement' | 'allocation_slip',
+    ): Promise<UploadResult> {
+        this.validateFile(file, 'DOCUMENT');
+        const safeMatriculationNumber = matriculationNumber.replace(/[^a-zA-Z0-9_-]/g, '-');
+        const extension = path.extname(file.originalname).toLowerCase() || '.pdf';
+        const key = `students/${safeMatriculationNumber}/accommodation/${applicationNumber}/documents/${documentType}_${Date.now()}_${randomUUID().slice(0, 8)}${extension}`;
+        const upload = new Upload({
+            client: this.s3Client,
+            params: {
+                Bucket: this.bucketName,
+                Key: key,
+                Body: file.buffer,
+                ContentType: file.mimetype,
+                Metadata: {
+                    fileType: documentType,
+                    matriculationNumber,
+                    applicationNumber,
+                    originalName: file.originalname,
+                },
+            },
+        });
+        await upload.done();
+        return { url: '', key, type: documentType };
+    }
+
     /**
      * Upload file to DigitalOcean Spaces
      * @param file - The file to upload

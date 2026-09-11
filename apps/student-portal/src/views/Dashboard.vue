@@ -167,7 +167,7 @@ export default {
       <div class="col-12">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <h2 class="h3 fw-bold text-dark mb-1">Welcome back, {{ auth.userFirstName }}! 👋</h2>
+            <h2 class="h3 fw-bold text-dark mb-1">Welcome back, <span class="text-capitalize">{{ auth.userFirstName }}</span>! 👋</h2>
             <p class="text-muted mb-0">Here's what's happening with your studies today.</p>
           </div>
           <div class="d-none d-md-flex">
